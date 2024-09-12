@@ -1,15 +1,24 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
 
-const filePath = path.join(process.cwd(), 'db.json');
+module.exports = {
+    read: async () => {
+        try {
+            const pathToFile = path.join(__dirname, 'db.json');
+            const data = await fs.readFile(pathToFile, 'utf-8');
+            return data ? JSON.parse(data) : [];
+        } catch (e) {
+            console.log('Mistake for writing', e.message);
+        }
 
-const reader = async () => {
-    const users = await fs.readFile(filePath, 'utf-8');
-    return JSON.parse(users);
+    },
+
+    write: async (users) => {
+        try {
+            const pathToFile = path.join(__dirname, 'db.json');
+            await fs.writeFile(pathToFile, JSON.stringify(users));
+        } catch (e) {
+            console.log('Mistake for writing', e.message);
+        }
+    }
 }
-
-const writer = async (users) => {
-    await fs.writeFile(filePath, JSON.stringify(users))
-}
-
-module.exports = {reader, writer};
