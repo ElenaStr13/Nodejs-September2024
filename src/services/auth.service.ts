@@ -1,5 +1,9 @@
 import { ApiError } from "../errors/api-error";
-import { ITokenPair } from "../interfaces/token.interface";
+import {
+  IToken,
+  ITokenPair,
+  ITokenPayload,
+} from "../interfaces/token.interface";
 import { ISignIn, IUser } from "../interfaces/user.interface";
 import { tokenRepository } from "../repositories/token.repository";
 import { userRepository } from "../repositories/user.repository";
@@ -44,6 +48,23 @@ class AuthService {
     });
     await tokenRepository.create({ ...tokens, _userId: user._id });
     return { user, tokens };
+  }
+
+  public async refresh(
+    jwtPayload: ITokenPayload,
+    oldPair: IToken,
+  ): Promise<ITokenPair> {
+    const newPair = tokenService.generateTokens({
+      userId: jwtPayload.userId,
+      role: jwtPayload.role,
+    });
+
+    await tokenRepository.deleteById(oldPair._userId);
+    await tokenRepository.create({
+      ...newPair,
+      _userId: jwtPayload.userId,
+    });
+    return newPair;
   }
 
   private async isEmailExistOrThrow(email: string): Promise<void> {
