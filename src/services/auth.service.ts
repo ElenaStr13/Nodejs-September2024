@@ -1,7 +1,7 @@
 import { EmailTypeEnum } from "../enums/email-type.enum";
 import { ApiError } from "../errors/api-error";
 import {
-  IToken,
+  //IToken,
   ITokenPair,
   ITokenPayload,
 } from "../interfaces/token.interface";
@@ -56,22 +56,17 @@ class AuthService {
     await tokenRepository.create({ ...tokens, _userId: user._id });
     return { user, tokens };
   }
-
   public async refresh(
-    jwtPayload: ITokenPayload,
-    oldPair: IToken,
+    refreshToken: string,
+    payload: ITokenPayload,
   ): Promise<ITokenPair> {
-    const newPair = tokenService.generateTokens({
-      userId: jwtPayload.userId,
-      role: jwtPayload.role,
+    await tokenRepository.deleteOneByParams({ refreshToken });
+    const tokens = tokenService.generateTokens({
+      userId: payload.userId,
+      role: payload.role,
     });
-
-    await tokenRepository.deleteById(oldPair._userId);
-    await tokenRepository.create({
-      ...newPair,
-      _userId: jwtPayload.userId,
-    });
-    return newPair;
+    await tokenRepository.create({ ...tokens, _userId: payload.userId });
+    return tokens;
   }
 
   private async isEmailExistOrThrow(email: string): Promise<void> {
@@ -79,6 +74,28 @@ class AuthService {
     if (user) {
       throw new ApiError("Email already exists", 409);
     }
+  }
+  public async logout(
+    jwtPayload: ITokenPayload,
+    tokenId: string,
+  ): Promise<void> {
+    const user = await userRepository.getById(jwtPayload.userId);
+    await tokenRepository.deleteOneByParams({ _id: tokenId });
+    await emailService.sendMail(
+      EmailTypeEnum.LOGOUT,
+      "stratelyuk.olena@gmail.com",
+      {
+        name: user.name,
+      },
+    );
+  }
+
+  public async logoutAll(jwtPayload: ITokenPayload): Promise<void> {
+    const user = await userRepository.getById(jwtPayload.userId);
+    await tokenRepository.deleteManyByParams({ _userId: jwtPayload.userId });
+    await emailService.sendMail(EmailTypeEnum.LOGOUT, user.email, {
+      name: user.name,
+    });
   }
 }
 

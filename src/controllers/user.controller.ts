@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 
-import { ApiError } from "../errors/api-error";
+//import { ApiError } from "../errors/api-error";
 import { ITokenPayload } from "../interfaces/token.interface";
 import { IUser } from "../interfaces/user.interface";
 import { userService } from "../services/user.service";
@@ -24,18 +24,22 @@ class UserController {
       next(e);
     }
   }
-  public async getMe(jwtPayload: ITokenPayload): Promise<IUser> {
-    const user = await userService.getMe(jwtPayload);
-    if (!user) {
-      throw new ApiError("User not found", 404);
+  public async getMe(req: Request, res: Response, next: NextFunction) {
+    try {
+      const jwtPayload = req.res.locals.jwtPayload as ITokenPayload;
+
+      const result = await userService.getMe(jwtPayload);
+      res.json(result);
+    } catch (e) {
+      next(e);
     }
-    return user;
   }
 
   public async updateMe(req: Request, res: Response, next: NextFunction) {
     try {
       const jwtPayload = req.res.locals.jwtPayload as ITokenPayload;
       const dto = req.body as IUser;
+
       const result = await userService.updateMe(jwtPayload, dto);
       res.json(result);
     } catch (e) {

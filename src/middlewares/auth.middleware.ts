@@ -26,6 +26,7 @@ class AuthMiddleware {
       if (!pair) {
         throw new ApiError("Token is not valid", 401);
       }
+      req.res.locals.tokenId = pair._id;
       req.res.locals.jwtPayload = payload;
       next();
     } catch (e) {
@@ -39,21 +40,22 @@ class AuthMiddleware {
     next: NextFunction,
   ) {
     try {
-      const refreshToken = req.get("Authorization");
-      if (!refreshToken) {
-        throw new ApiError("No token provided", 401);
+      const header = req.headers.authorization;
+      if (!header) {
+        throw new ApiError("Token is not provided", 401);
       }
+      const refreshToken = header.split("Bearer ")[1];
       const payload = tokenService.verifyToken(
         refreshToken,
         TokenTypeEnum.REFRESH,
       );
 
-      const tokenPair = await tokenRepository.findByParams({ refreshToken });
-      if (!tokenPair) {
-        throw new ApiError("Invalid token", 401);
+      const pair = await tokenRepository.findByParams({ refreshToken });
+      if (!pair) {
+        throw new ApiError("Token is not valid", 401);
       }
       req.res.locals.jwtPayload = payload;
-      req.res.locals.tokenPair = tokenPair;
+      req.res.locals.refreshToken = refreshToken;
       next();
     } catch (e) {
       next(e);
