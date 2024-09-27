@@ -32,4 +32,17 @@ router.post(
   authController.logoutAll,
 );
 
+router.post("/forgot-password", authController.forgotPasswordSendEmail);
+router.put(
+  "/forgot-password",
+  authMiddleware.checkActionToken,
+  authController.forgotPasswordSet,
+);
+
+// router.put(
+//   "/verify",
+//   //authMiddleware.checkActionToken(ActionTokenTypeEnum.VERIFY_EMAIL),
+//   authController.verify,
+// );
+
 export const authRouter = router;

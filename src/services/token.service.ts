@@ -1,6 +1,7 @@
 import * as jsonwebtoken from "jsonwebtoken";
 
 import { configs } from "../config/configs";
+import { ActionTokenTypeEnum } from "../enums/action-token-type.enum";
 import { TokenTypeEnum } from "../enums/token-type.enum";
 import { ApiError } from "../errors/api-error";
 import { ITokenPair, ITokenPayload } from "../interfaces/token.interface";
@@ -35,6 +36,28 @@ class TokenService {
       console.error(e.message);
       throw new ApiError("Invalid token", 401);
     }
+  }
+
+  public generateActionTokens(
+    payload: ITokenPayload,
+    tokenType: ActionTokenTypeEnum,
+  ): string {
+    let secret: string;
+    let expiresIn: string;
+
+    switch (tokenType) {
+      case ActionTokenTypeEnum.FORGOT_PASSWORD:
+        secret = configs.ACTION_FORGOT_PASSWORD_SECRET;
+        expiresIn = configs.ACTION_FORGOT_PASSWORD_EXPIRATION;
+        break;
+      case ActionTokenTypeEnum.VERIFY_EMAIL:
+        //secret = configs.ACTION_FORGOT_PASSWORD_SECRET;
+        //expiresIn = configs.ACTION_FORGOT_PASSWORD_EXPIRATION;
+        break;
+      default:
+        throw new ApiError("invalid token type", 400);
+    }
+    return jsonwebtoken.sign(payload, secret, { expiresIn });
   }
 }
 
