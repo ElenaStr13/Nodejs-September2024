@@ -91,18 +91,16 @@ class AuthController {
       next(e);
     }
   }
-  // public async verify(req: Request, res: Response, next: NextFunction) {
-  //   try {
-  //     const jwtPayload = req.res.locals.jwtPayload as ITokenPayload;
-  //
-  //     const user = await authService.verify(jwtPayload);
-  //     const response = UserPresenter.toPrivateResponseDto(user);
-  //
-  //     res.status(204).json(response);
-  //   } catch (e) {
-  //     next(e);
-  //   }
-  // }
+  public async verify(req: Request, res: Response, next: NextFunction) {
+    try {
+      const jwtPayload = req.res.locals.jwtPayload as ITokenPayload;
+
+      await authService.verify(jwtPayload);
+      res.sendStatus(204);
+    } catch (e) {
+      next(e);
+    }
+  }
 }
 
 export const authController = new AuthController();

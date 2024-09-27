@@ -28,8 +28,20 @@ class AuthService {
       role: user.role,
     });
     await tokenRepository.create({ ...tokens, _userId: user._id });
+
+    const token = tokenService.generateActionTokens(
+      { userId: user._id, role: user.role },
+      ActionTokenTypeEnum.VERIFY_EMAIL,
+    );
+    await actionTokenRepository.create({
+      type: ActionTokenTypeEnum.VERIFY_EMAIL,
+      _userId: user._id,
+      token,
+    });
+
     await emailService.sendMail(EmailTypeEnum.WELCOME, user.email, {
       name: user.name,
+      actionToken: token,
     });
     return { user, tokens };
   }
@@ -57,6 +69,7 @@ class AuthService {
     await tokenRepository.create({ ...tokens, _userId: user._id });
     return { user, tokens };
   }
+
   public async refresh(
     refreshToken: string,
     payload: ITokenPayload,
@@ -69,13 +82,21 @@ class AuthService {
     await tokenRepository.create({ ...tokens, _userId: payload.userId });
     return tokens;
   }
+
+  private async isEmailExistOrThrow(email: string): Promise<void> {
+    const user = await userRepository.getByEmail(email);
+    if (user) {
+      throw new ApiError("Email already exists", 409);
+    }
+  }
+
   public async logout(
     jwtPayload: ITokenPayload,
     tokenId: string,
   ): Promise<void> {
     const user = await userRepository.getById(jwtPayload.userId);
     await tokenRepository.deleteOneByParams({ _id: tokenId });
-    await emailService.sendMail(EmailTypeEnum.LOGOUT, user.email, {
+    await emailService.sendMail(EmailTypeEnum.LOGOUT, "feden2906@gmail.com", {
       name: user.name,
     });
   }
@@ -93,6 +114,7 @@ class AuthService {
     if (!user) {
       throw new ApiError("User not found", 404);
     }
+
     const token = tokenService.generateActionTokens(
       { userId: user._id, role: user.role },
       ActionTokenTypeEnum.FORGOT_PASSWORD,
@@ -124,23 +146,12 @@ class AuthService {
     await tokenRepository.deleteManyByParams({ _userId: jwtPayload.userId });
   }
 
-  public async verify(jwtPayload: ITokenPayload): Promise<IUser> {
-    const [user] = await Promise.all([
-      userRepository.updateById(jwtPayload.userId, {
-        isVerified: true,
-      }),
-      actionTokenRepository.deleteManyByParams({
-        type: ActionTokenTypeEnum.VERIFY_EMAIL,
-      }),
-    ]);
-    return user;
-  }
-
-  private async isEmailExistOrThrow(email: string): Promise<void> {
-    const user = await userRepository.getByEmail(email);
-    if (user) {
-      throw new ApiError("Email already exists", 409);
-    }
+  public async verify(jwtPayload: ITokenPayload): Promise<void> {
+    await userRepository.updateById(jwtPayload.userId, { isVerified: true });
+    await actionTokenRepository.deleteManyByParams({
+      _userId: jwtPayload.userId,
+      type: ActionTokenTypeEnum.VERIFY_EMAIL,
+    });
   }
 }
 
